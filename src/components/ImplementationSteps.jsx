@@ -1,9 +1,8 @@
-import React from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from "@mui/material";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
 
 const ImplementationSteps = ({ config, open, onClose }) => {
   const scriptName = 'consent.bundle.js';
-  const scriptUrl = `https://sdk-video.brightdata.com/tools/external-consent/${scriptName}`;
+  const scriptUrl = `https://brightsdk.github.io/bright-sdk-external-consent/releases/latest/${scriptName}`;
   const curlCommand = `curl -o ${scriptName} ${scriptUrl}`;
   const scriptTag = `<script type="text/javascript" src="${scriptName}"></script>`;
   const elemId = 'consent-container';
