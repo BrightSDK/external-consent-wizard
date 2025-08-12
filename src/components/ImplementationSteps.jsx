@@ -4,7 +4,7 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography }
 const ImplementationSteps = ({ config, open, onClose }) => {
   const scriptName = 'consent.bundle.js';
   const scriptUrl = `https://brightsdk.github.io/bright-sdk-external-consent/releases/latest/${scriptName}`;
-  const curlCommand = `curl -o ${scriptName} ${scriptUrl}`;
+  const curlCommand = `curl -L -o ${scriptName} ${scriptUrl}`;
   const scriptTag = `<script type="text/javascript" src="${scriptName}"></script>`;
   const elemId = 'consent-container';
   const divTag = `
