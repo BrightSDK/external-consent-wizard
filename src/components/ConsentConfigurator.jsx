@@ -1,5 +1,5 @@
 import "@fontsource/roboto";
-import { Button, Card, CardContent, Divider, Grid, Snackbar, TextField, Typography } from "@mui/material";
+import { Button, Card, CardContent, Divider, FormControl, Grid, InputLabel, MenuItem, Select, Snackbar, TextField, Typography } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import ImplementationSteps from "./ImplementationSteps";
 
@@ -21,7 +21,8 @@ const ConsentConfigurator = () => {
     acceptTextColor: "#FFF",
     declineTextColor: "#9D9B9B",
     borderColor: "#AA99EC",
-    outlineColor: "#9DA9E8"
+    outlineColor: "#9DA9E8",
+    language: "en"
   });
 
   const getConfigFromURL = () => {
@@ -127,12 +128,32 @@ const ConsentConfigurator = () => {
               ⚙️ Consent Configuration
             </Typography>
             <Divider style={{ margin: "10px 0" }} />
-            <TextField fullWidth label="Logo URL" name="logo" value={config.logo} onChange={handleChange} margin="normal" />
-            <TextField fullWidth label="QR Code URL" name="qrCode" value={config.qrCode} onChange={handleChange} margin="normal" />
-            <TextField fullWidth label="Benefit Text" name="benefitText" value={config.benefitText} onChange={handleChange} margin="normal" />
-            <TextField fullWidth label="Accept Button Image URL" name="acceptButton" value={config.acceptButton} onChange={handleChange} margin="normal" />
-            <TextField fullWidth label="Decline Button Image URL" name="declineButton" value={config.declineButton} onChange={handleChange} margin="normal" />
             <TextField fullWidth label="Title" name="title" value={config.title} onChange={handleChange} margin="normal" />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>🌐 Language</InputLabel>
+              <Select
+                name="language"
+                value={config.language}
+                onChange={handleChange}
+                label="🌐 Language"
+              >
+                <MenuItem value="en">🇺🇸 English</MenuItem>
+                <MenuItem value="es">🇪🇸 Español</MenuItem>
+                <MenuItem value="fr">🇫🇷 Français</MenuItem>
+                <MenuItem value="de">🇩🇪 Deutsch</MenuItem>
+                <MenuItem value="it">🇮🇹 Italiano</MenuItem>
+                <MenuItem value="pt">🇵🇹 Português</MenuItem>
+                <MenuItem value="ru">🇷🇺 Русский</MenuItem>
+                <MenuItem value="ja">🇯🇵 日本語</MenuItem>
+                <MenuItem value="ko">🇰🇷 한국어</MenuItem>
+                <MenuItem value="zh">🇨🇳 中文</MenuItem>
+                <MenuItem value="ar">🇸🇦 العربية</MenuItem>
+                <MenuItem value="hi">🇮🇳 हिन्दी</MenuItem>
+                <MenuItem value="tr">🇹🇷 Türkçe</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField fullWidth label="Logo URL" name="logo" value={config.logo} onChange={handleChange} margin="normal" />
+            <TextField fullWidth label="Benefit Text" name="benefitText" value={config.benefitText} onChange={handleChange} margin="normal" />
             <TextField fullWidth label="Accept Button Text" name="acceptButtonText" value={config.acceptButtonText} onChange={handleChange} margin="normal" />
             <TextField fullWidth label="Decline Button Text" name="declineButtonText" value={config.declineButtonText} onChange={handleChange} margin="normal" />
             <TextField fullWidth type="color" label="Background Color" name="backgroundColor" value={config.backgroundColor} onChange={handleChange} margin="normal" />
@@ -141,6 +162,9 @@ const ConsentConfigurator = () => {
             <TextField fullWidth type="color" label="Decline Button Text Color" name="declineTextColor" value={config.declineTextColor} onChange={handleChange} margin="normal" />
             <TextField fullWidth type="color" label="Border Color" name="borderColor" value={config.borderColor} onChange={handleChange} margin="normal" />
             <TextField fullWidth type="color" label="Outline Color" name="outlineColor" value={config.outlineColor} onChange={handleChange} margin="normal" />
+            <TextField fullWidth label="Accept Button Image URL" name="acceptButton" value={config.acceptButton} onChange={handleChange} margin="normal" />
+            <TextField fullWidth label="Decline Button Image URL" name="declineButton" value={config.declineButton} onChange={handleChange} margin="normal" />
+            <TextField fullWidth label="QR Code URL" name="qrCode" value={config.qrCode} onChange={handleChange} margin="normal" />
             <Button
               variant="contained"
               color="secondary"
