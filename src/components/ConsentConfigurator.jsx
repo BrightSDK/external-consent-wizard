@@ -1,42 +1,12 @@
 import "@fontsource/roboto";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Divider,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  Snackbar,
-  TextField,
-  Typography
-} from "@mui/material";
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import { Button, Card, CardContent, Divider, Grid, Snackbar, TextField, Typography } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
+import ImplementationSteps from "./ImplementationSteps";
 
-// Lazy load ImplementationSteps
-const ImplementationSteps = React.lazy(() => import("./ImplementationSteps"));
+// Force React to be used - prevents auto-removal
+const _forceReactUsage = React.createElement;
 
 const ConsentConfigurator = () => {
-  const supportedLanguages = [
-    { code: "en_US", name: "English" },
-    { code: "ar_SA", name: "العربية (Arabic)" },
-    { code: "de_DE", name: "Deutsch (German)" },
-    { code: "es_ES", name: "Español (Spanish)" },
-    { code: "fr_FR", name: "Français (French)" },
-    { code: "hi_IN", name: "हिन्दी (Hindi)" },
-    { code: "it_IT", name: "Italiano (Italian)" },
-    { code: "ja_JP", name: "日本語 (Japanese)" },
-    { code: "nl_NL", name: "Nederlands (Dutch)" },
-    { code: "pt_PT", name: "Português (Portuguese)" },
-    { code: "ru_RU", name: "Русский (Russian)" },
-    { code: "tr_TR", name: "Türkçe (Turkish)" },
-    { code: "zh_Hans_CN", name: "中文 (Chinese Simplified)" }
-  ];
-
   const getDefaultConfig = () => ({
     logo: "img/logo.png",
     qrCode: "",
@@ -51,8 +21,7 @@ const ConsentConfigurator = () => {
     acceptTextColor: "#FFF",
     declineTextColor: "#9D9B9B",
     borderColor: "#AA99EC",
-    outlineColor: "#9DA9E8",
-    language: "en_US"
+    outlineColor: "#9DA9E8"
   });
 
   const getConfigFromURL = () => {
@@ -89,28 +58,7 @@ const ConsentConfigurator = () => {
         const container = document.getElementById("consent-container");
         if (container && window.ConsentModule) {
           container.innerHTML = "";
-          // Convert language format from locale codes to external consent library format
-          const convertLanguageCode = (languageCode) => {
-            const languageMap = {
-              'en_US': 'en-US',
-              'ar_SA': 'ar-SA',
-              'de_DE': 'de-DE',
-              'es_ES': 'es-ES',
-              'fr_FR': 'fr-FR',
-              'hi_IN': 'hi-IN',
-              'it_IT': 'it-IT',
-              'ja_JP': 'ja-JP',
-              'nl_NL': 'nl-NL',
-              'pt_PT': 'pt-PT',
-              'ru_RU': 'ru-RU',
-              'tr_TR': 'tr-TR',
-              'zh_Hans_CN': 'zh-CN'
-            };
-            return languageMap[languageCode] || 'en-US';
-          };
-
-          const convertedLanguage = convertLanguageCode(config.language);
-          const params = { ...config, language: convertedLanguage, preview: true };
+          const params = { ...config, preview: true };
           window.ConsentModule.create("consent-container", params).show();
         }
 
@@ -160,27 +108,25 @@ const ConsentConfigurator = () => {
   };
 
   return (
-    <Grid container spacing={3} style={{ height: "100vh", padding: "20px" }}>
-      <Grid item xs={4} style={{ maxWidth: "30%" }}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6">Consent Configuration</Typography>
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      padding: "20px"
+    }}>
+      <Grid container spacing={3} style={{ height: "100vh" }}>
+        <Grid item xs={3} style={{ maxWidth: "25%" }}>
+          <Card style={{
+            background: "rgba(255, 255, 255, 0.85)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255, 255, 255, 0.18)",
+            borderRadius: "15px",
+            boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)"
+          }}>
+            <CardContent>
+            <Typography variant="h6" style={{ fontWeight: 'bold', fontSize: '1.3rem' }}>
+              ⚙️ Consent Configuration
+            </Typography>
             <Divider style={{ margin: "10px 0" }} />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Language</InputLabel>
-              <Select
-                name="language"
-                value={config.language}
-                onChange={handleChange}
-                label="Language"
-              >
-                {supportedLanguages.map((lang) => (
-                  <MenuItem key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
             <TextField fullWidth label="Logo URL" name="logo" value={config.logo} onChange={handleChange} margin="normal" />
             <TextField fullWidth label="QR Code URL" name="qrCode" value={config.qrCode} onChange={handleChange} margin="normal" />
             <TextField fullWidth label="Benefit Text" name="benefitText" value={config.benefitText} onChange={handleChange} margin="normal" />
@@ -199,7 +145,13 @@ const ConsentConfigurator = () => {
               variant="contained"
               color="secondary"
               fullWidth
-              style={{ marginTop: "20px" }}
+              style={{
+                marginTop: "20px",
+                background: "rgba(255, 255, 255, 0.2)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "white"
+              }}
               onClick={handleReset}
             >
               Reset
@@ -208,24 +160,52 @@ const ConsentConfigurator = () => {
         </Card>
       </Grid>
 
-      <Grid item xs={8} style={{ maxWidth: "70%" }}>
-        <Card>
+      <Grid item xs={9} style={{ maxWidth: "75%" }}>
+        <Card style={{
+          background: "rgba(255, 255, 255, 0.85)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
+          borderRadius: "15px",
+          boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)"
+        }}>
           <CardContent>
-            <Typography variant="h6">Consent Preview</Typography>
+            <Typography variant="h6" style={{ fontWeight: 'bold', fontSize: '1.3rem' }}>
+              👁️ Consent Preview
+            </Typography>
             <Divider style={{ margin: "10px 0" }} />
-            <div id="consent-container"></div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px',
+              padding: '20px'
+            }}>
+              <div id="consent-container"></div>
+            </div>
             <Button
               variant="contained"
               color="primary"
               fullWidth
-              style={{ marginTop: "10px" }}
+              style={{
+                marginTop: "10px",
+                background: "rgba(102, 126, 234, 0.8)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "white"
+              }}
               onClick={() => setDialogOpen(true)}
             >
               View Implementation Steps
             </Button>
             <Button
               variant="contained"
-              style={{ backgroundColor: "green", color: "white", marginTop: "10px" }}
+              style={{
+                backgroundColor: "rgba(46, 204, 113, 0.8)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "white",
+                marginTop: "10px"
+              }}
               fullWidth
               onClick={handleShare}
             >
@@ -242,14 +222,9 @@ const ConsentConfigurator = () => {
         message="URL copied to clipboard!"
       />
 
-      <Suspense fallback={
-        <Box display="flex" justifyContent="center" alignItems="center" p={2}>
-          <CircularProgress size={24} />
-        </Box>
-      }>
-        <ImplementationSteps config={config} open={dialogOpen} onClose={() => setDialogOpen(false)} />
-      </Suspense>
-    </Grid>
+      <ImplementationSteps config={config} open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      </Grid>
+    </div>
   );
 };
 

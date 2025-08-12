@@ -1,66 +1,43 @@
-# External Consent Wizard
+# 🧙‍♂️ External Consent Wizard
 
-A powerful, interactive web application for configuring and generating consent dialogs using the Bright SDK External Consent library. This wizard provides a visual interface to customize consent dialogs with real-time preview and generates ready-to-use implementation code.
+A beautiful, modern React application for configuring and previewing Bright SDK consent dialogs with real-time customization and glassmorphism design.
 
-## 🚀 Features
+![External Consent Wizard](https://img.shields.io/badge/React-19-blue.svg)
+![Material-UI](https://img.shields.io/badge/Material--UI-6-blue.svg)
+![Webpack](https://img.shields.io/badge/Webpack-5-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-### Visual Configuration
-- **Real-time Preview**: See your consent dialog changes instantly
-- **Intuitive Interface**: Easy-to-use form controls for all customization options
-- **Multi-language Support**: 13 supported languages with native script display
-- **Color Customization**: Visual color pickers for complete design control
+## ✨ Features
 
-### Supported Languages
-- 🇺🇸 English
-- 🇸🇦 العربية (Arabic)
-- 🇩🇪 Deutsch (German)
-- 🇪🇸 Español (Spanish)
-- 🇫🇷 Français (French)
-- 🇮🇳 हिन्दी (Hindi)
-- 🇮🇹 Italiano (Italian)
-- 🇯🇵 日本語 (Japanese)
-- 🇳🇱 Nederlands (Dutch)
-- 🇵🇹 Português (Portuguese)
-- 🇷🇺 Русский (Russian)
-- 🇹🇷 Türkçe (Turkish)
-- 🇨🇳 中文 (Chinese Simplified)
+### 🎨 Modern Design
+- **Glassmorphism UI**: Beautiful glass-like cards with blur effects
+- **Blue Gradient Background**: Stunning gradient from purple-blue to violet
+- **Responsive Layout**: Optimized for different screen sizes
+- **Professional Typography**: Bold titles with meaningful glyphs
 
-### Configuration Options
-- **Visual Elements**: Logo, QR code, custom button images
-- **Text Content**: Title, benefit text, button labels
-- **Design System**: Background, accent, text, border, and outline colors
-- **Internationalization**: Full language support with proper locale handling
+### ⚙️ Configuration Options
+- **Visual Customization**: Logo, QR code, and button images
+- **Text Customization**: Title, benefit text, and button labels
+- **Color Palette**: Background, accent, text, border, and outline colors
+- **Real-time Preview**: See changes instantly as you type
 
-### Developer Features
-- **Code Generation**: Automatic implementation code generation
+### 🔧 Advanced Features
 - **URL Sharing**: Share configurations via encoded URLs
-- **Copy to Clipboard**: Easy copying of generated code snippets
-- **Download Instructions**: Step-by-step implementation guide
-
-## 🏗️ Architecture
-
-### Technology Stack
-- **Frontend**: React 19 with Material-UI 6
-- **Build System**: Webpack 5 with code splitting optimization
-- **Styling**: Emotion-based styling with Roboto font
-- **Development**: Hot reload with webpack-dev-server
-
-### Performance Optimizations
-- **Code Splitting**: Automatic vendor, React, and MUI chunk separation
-- **Lazy Loading**: Components load on-demand with React.lazy()
-- **Bundle Optimization**: Optimized chunk sizes and caching strategies
-- **Asset Management**: Efficient handling of fonts and images
+- **Implementation Guide**: Step-by-step integration instructions
+- **Focus Retention**: Smooth UX during real-time updates
+- **Clipboard Integration**: One-click URL copying
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn package manager
+- Node.js 16+ and npm
+- Modern web browser with ES6+ support
 
 ### Installation
+
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone [repository-url]
 cd external-consent-wizard
 
 # Install dependencies
@@ -70,181 +47,200 @@ npm install
 npm start
 ```
 
-The application will open automatically at `http://localhost:8080` (or next available port).
+The application will open at `http://localhost:8081`
 
-### Building for Production
+### Build for Production
+
 ```bash
-# Build optimized production bundle
+# Create production build
 npm run build
 
-# The built application will be available in the dist/ folder
-# This contains the complete, optimized application ready for deployment
-```
-
-### Deployment
-The `dist/` folder contains the production-ready application that can be:
-- Deployed to any static hosting service (GitHub Pages, Netlify, Vercel, etc.)
-- Served from any web server
-- Used as a standalone application
-
-```bash
-# Serve the production application locally
+# Serve built files
 npm run serve
-# or
-cd dist && npx serve -s .
 ```
 
 ## 📖 Usage Guide
 
-### Basic Configuration
-1. **Language Selection**: Choose your target language from the dropdown
-2. **Visual Assets**: Configure logo and QR code URLs
-3. **Text Content**: Customize title and benefit text
-4. **Button Configuration**: Set button texts and optional custom images
-5. **Color Scheme**: Use color pickers to match your brand
+### 1. Configuration Panel ⚙️
+The left panel provides comprehensive customization options:
 
-### Advanced Features
-- **Real-time Preview**: Changes are reflected immediately in the preview panel
-- **URL Sharing**: Use the share button to generate shareable configuration URLs
-- **Implementation Guide**: Click "How to implement" for step-by-step integration instructions
-- **Code Generation**: Get ready-to-use JavaScript code for your configuration
+#### Visual Elements
+- **Logo URL**: Path to your application logo
+- **QR Code URL**: Optional QR code for mobile scanning
+- **Accept/Decline Button Images**: Custom button graphics
 
-### Implementation Steps
-1. **Download Script**: Use the provided curl command to download the consent library
-2. **Add HTML Structure**: Include the required HTML container and styles
-3. **Include Script**: Add the consent script to your page
-4. **Initialize Dialog**: Use the generated configuration code
-5. **Handle Callbacks**: Implement onShow, onAccept, onDecline, and onClose handlers
+#### Text Content
+- **Title**: Main consent dialog heading
+- **Benefit Text**: Explanation of consent benefits
+- **Button Text**: Custom labels for accept/decline actions
 
-## 🔧 Configuration Reference
+#### Color Scheme
+- **Background Color**: Dialog background
+- **Accent Color**: Primary brand color
+- **Text Colors**: Accept and decline button text
+- **Border & Outline**: Custom border styling
 
-### Basic Properties
-```javascript
-{
-  logo: "img/logo.png",           // URL to your logo image
-  qrCode: "img/qr.png",          // URL to QR code image (optional)
-  title: "Consent Title",         // Main dialog title
-  benefitText: "Support text",    // Explanatory text
-  acceptButtonText: "Accept",     // Accept button label
-  declineButtonText: "Decline",   // Decline button label
-  language: "en-US"               // Interface language
-}
+### 2. Preview Panel 👁️
+The right panel shows real-time preview:
+- **Live Updates**: Changes reflect immediately
+- **Centered Display**: Optimal preview positioning
+- **Interactive Elements**: Functional buttons and layout
+
+### 3. Action Buttons
+- **Reset**: Restore default configuration
+- **View Implementation Steps**: Detailed integration guide
+- **Share**: Generate shareable configuration URL
+
+## 🔗 URL Sharing
+
+The wizard supports sharing configurations through encoded URLs:
+
+```
+https://your-domain.com/#[base64-encoded-config]
 ```
 
-### Visual Customization
-```javascript
-{
-  backgroundColor: "#FBEFCF",     // Dialog background color
-  accentColor: "#D36B2E",         // Primary accent color
-  acceptTextColor: "#FFF",        // Accept button text color
-  declineTextColor: "#9D9B9B",    // Decline button text color
-  borderColor: "#AA99EC",         // Dialog border color
-  outlineColor: "#9DA9E8"         // Outline accent color
-}
-```
+### Example Workflow
+1. Configure your consent dialog
+2. Click "Share" button
+3. URL is automatically copied to clipboard
+4. Share with team members or save for later
 
-### Advanced Options
-```javascript
-{
-  acceptButton: "img/accept.png", // Custom accept button image
-  declineButton: "img/decline.png", // Custom decline button image
-  preview: false,                 // Enable preview mode
-  onShow: () => {},              // Show callback
-  onAccept: () => {},            // Accept callback
-  onDecline: () => {},           // Decline callback
-  onClose: () => {}              // Close callback
-}
-```
+## 🛠️ Technical Architecture
 
-## 🚀 Deployment
+### Core Technologies
+- **React 19**: Modern React with hooks and functional components
+- **Material-UI 6**: Comprehensive component library
+- **Webpack 5**: Module bundling and development server
+- **Babel**: JavaScript transpilation for browser compatibility
 
-### Production Application
-The application is built and ready for deployment in the `dist/` folder. This contains:
-- Optimized JavaScript bundles with code splitting
-- Compressed assets and fonts
-- Production-ready HTML with proper meta tags
-- All static resources (images, styles)
+### Key Components
 
-### Hosting Options
-Deploy the `dist/` folder to any of these platforms:
-- **GitHub Pages**: Upload dist contents to gh-pages branch
-- **Netlify**: Drag and drop the dist folder or connect repository
-- **Vercel**: Import project and build automatically
-- **AWS S3**: Upload dist contents to S3 bucket with static hosting
-- **Any Web Server**: Copy dist contents to web server directory
+#### `ConsentConfigurator.jsx`
+Main application component featuring:
+- State management for configuration options
+- Real-time preview updates with debouncing
+- URL encoding/decoding for sharing
+- Focus retention during updates
 
-### Custom Domain
-The application works with any domain. Simply:
-1. Build the application: `npm run build`
-2. Upload the `dist/` folder contents to your hosting
-3. Point your domain to the hosting location
+#### `ImplementationSteps.jsx`
+Modal dialog providing:
+- Step-by-step integration instructions
+- Code examples for different scenarios
+- Best practices and tips
 
-## 🌐 Live Application
-
-**Production Deployment**: [Launch External Consent Wizard](./dist/index.html)
-
-Access the fully-featured production application with all configuration options, real-time preview, and code generation capabilities. This is the complete tool ready for use in configuring consent dialogs.
-
-## 🔗 Related Projects
-
-- **[Bright SDK External Consent](https://github.com/BrightSDK/bright-sdk-external-consent)**: The core consent library
-- **[Bright SDK](https://brightsdk.com)**: Complete SDK ecosystem
-
-## 📁 Project Structure
-
+### Project Structure
 ```
 external-consent-wizard/
-├── public/
-│   ├── index.html              # Base HTML template
-│   └── img/                    # Static images
-├── src/
-│   ├── App.jsx                 # Main application component
-│   ├── index.js               # Application entry point
-│   └── components/
-│       ├── ConsentConfigurator.jsx  # Main configuration interface
-│       └── ImplementationSteps.jsx  # Implementation guide dialog
-├── dist/                       # Production build output
-├── webpack.config.js          # Webpack configuration
-└── package.json               # Project dependencies and scripts
+├── public/                 # Static assets
+│   ├── img/               # Sample images
+│   └── index.html         # HTML template
+├── src/                   # Source code
+│   ├── components/        # React components
+│   ├── index.js          # Application entry point
+│   └── App.jsx           # Root component
+├── webpack.config.js      # Build configuration
+├── package.json          # Dependencies and scripts
+└── README.md             # This file
 ```
 
-## 🛠️ Development
+## 🎯 Integration Guide
 
-### Code Structure
-- **ConsentConfigurator**: Main component handling configuration and preview
-- **ImplementationSteps**: Modal dialog with implementation instructions
-- **Language Support**: Complete mapping between UI locales and consent library codes
+### Basic Setup
+```javascript
+// Include the consent module
+import ConsentModule from './bright-sdk-external-consent';
 
-### Key Features Implementation
-- **Real-time Preview**: useEffect hook with debounced updates
-- **State Management**: React hooks with URL persistence
-- **Language Conversion**: Mapping between locale formats (en_US ↔ en-US)
-- **Code Generation**: Dynamic JavaScript code construction
+// Create consent dialog
+const config = {
+  logo: "img/logo.png",
+  title: "Bright SDK Consent",
+  benefitText: "To support the app",
+  acceptButtonText: "Accept",
+  declineButtonText: "Decline",
+  // ... other options
+};
 
-### Performance Considerations
-- **Bundle Splitting**: Vendor libraries separated for optimal caching
-- **Lazy Loading**: Implementation guide loads on-demand
-- **Memory Management**: Proper cleanup of timeouts and event listeners
+ConsentModule.create("container-id", config).show();
+```
 
-## 📄 License
+### Advanced Configuration
+```javascript
+const advancedConfig = {
+  // Visual elements
+  logo: "img/custom-logo.png",
+  qrCode: "img/qr-code.png",
+  acceptButton: "img/custom-accept.png",
+  declineButton: "img/custom-decline.png",
 
-ISC License - see LICENSE file for details.
+  // Colors
+  backgroundColor: "#FBEFCF",
+  accentColor: "#D36B2E",
+  acceptTextColor: "#FFF",
+  declineTextColor: "#9D9B9B",
+  borderColor: "#AA99EC",
+  outlineColor: "#9DA9E8",
+
+  // Text content
+  title: "Custom Consent Title",
+  benefitText: "Custom benefit explanation",
+  acceptButtonText: "I Agree",
+  declineButtonText: "No Thanks"
+};
+```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+We welcome contributions! Please follow these steps:
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+### Development Guidelines
+- Follow React best practices
+- Maintain consistent code style
+- Add comments for complex logic
+- Test changes thoroughly
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Build Errors
+```bash
+# Clear node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
+
+#### Development Server Issues
+```bash
+# Check if port 8081 is available
+lsof -i :8081
+
+# Use different port
+npm start -- --port 3000
+```
+
+#### React Import Issues
+If you encounter "React is not defined" errors:
+- Ensure React import is present in JSX files
+- Check babel configuration for JSX transform
+- Verify webpack setup for React
 
 ## 📞 Support
 
-For questions or issues:
-- Create an issue in the repository
-- Check the [Bright SDK documentation](https://brightsdk.com/docs)
-- Review the implementation guide in the application
+For questions, issues, or feature requests:
+- Create an issue on GitHub
+- Contact the development team
+- Check documentation for common solutions
 
 ---
 
-**Built with ❤️ by the Bright SDK Team**
+**Made with ❤️ by the Bright SDK Team**

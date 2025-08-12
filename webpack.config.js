@@ -2,56 +2,18 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
-module.exports = (env, argv) => {
-  const isProduction = argv.mode === 'production';
-
-  return {
-    entry: "./src/index.js",
-    output: {
-      path: path.resolve(__dirname, "dist"),
-      filename: isProduction ? "[name].[contenthash].js" : "[name].js",
-      chunkFilename: isProduction ? "[name].[contenthash].chunk.js" : "[name].chunk.js",
-      clean: true,
-    },
-    mode: argv.mode || "development",
-    devServer: {
-      static: path.resolve(__dirname, "public"),
-      hot: true,
-      open: true,
-    },
-    optimization: {
-      splitChunks: {
-        chunks: "all",
-        minSize: 20000,
-        maxSize: 250000,
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: "vendors",
-            chunks: "all",
-            priority: 10,
-          },
-          mui: {
-            test: /[\\/]node_modules[\\/]@mui[\\/]/,
-            name: "mui",
-            chunks: "all",
-            priority: 20,
-          },
-          react: {
-            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-            name: "react",
-            chunks: "all",
-            priority: 30,
-          },
-        },
-      },
-      runtimeChunk: "single",
-    },
-    performance: {
-      hints: isProduction ? "warning" : false,
-      maxEntrypointSize: 512000,
-      maxAssetSize: 512000,
-    },
+module.exports = {
+  entry: "./src/index.js",
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    filename: "bundle.js",
+  },
+  mode: "development",
+  devServer: {
+    static: path.resolve(__dirname, "public"),
+    hot: true,
+    open: true,
+  },
   module: {
     rules: [
       {
@@ -87,5 +49,4 @@ module.exports = (env, argv) => {
       ]
     })
   ],
-  };
 };
