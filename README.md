@@ -2,6 +2,14 @@
 
 A beautiful, modern React application for configuring and previewing Bright SDK consent dialogs with real-time customization and glassmorphism design.
 
+## 🌐 Live Application
+
+**🚀 [Launch the Interactive Wizard](https://brightsdk.github.io/external-consent-wizard/)**
+
+Experience the wizard in action! Configure consent dialogs with real-time preview, share configurations, and generate implementation code - all through our beautiful glassmorphism interface.
+
+---
+
 ![External Consent Wizard](https://img.shields.io/badge/React-19-blue.svg)
 ![Material-UI](https://img.shields.io/badge/Material--UI-6-blue.svg)
 ![Webpack](https://img.shields.io/badge/Webpack-5-blue.svg)
