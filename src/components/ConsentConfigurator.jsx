@@ -182,6 +182,83 @@ const ConsentConfigurator = () => {
   const tabSwitchingRef = useRef(false);
   const justFocusedAtRef = useRef(0);
   const [lastBlurAt, setLastBlurAt] = useState(0);
+  const suppressRefocusUntilRef = useRef(0);
+  const nativeColorInputRef = useRef(null);
+  const activeColorFieldRef = useRef(null);
+  // Enable extra focus/blur logging by adding ?debugFocus=1 to the app URL
+  const DEBUG_FOCUS = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debugFocus') === '1';
+
+  // When debugging is enabled, attach lightweight instrumentation to capture
+  // the event timeline (focus/blur/keydown/keypress/keyup/pointerdown) and
+  // snapshots of document.activeElement. Paste the console output so I can
+  // analyze why numeric keys close the native color picker.
+  useEffect(() => {
+    if (!DEBUG_FOCUS) return;
+    const tag = '[CONSENT-FOCUS-DBG]';
+    const snap = () => {
+      const ae = document.activeElement;
+      try {
+        return {
+          time: Date.now(),
+          activeTag: ae && ae.tagName,
+          activeName: ae && (ae.getAttribute ? ae.getAttribute('name') : undefined),
+          activeType: ae && ae.type,
+          activeId: ae && ae.id,
+        };
+      } catch (_) { return { time: Date.now(), active: String(ae) }; }
+    };
+
+    const logEvent = (prefix, e) => {
+      try {
+        const t = e.target || {};
+        console.log(tag, prefix, {
+          key: e.key, code: e.code, type: e.type, isTrusted: e.isTrusted, cancelled: e.defaultPrevented,
+          targetTag: t.tagName, targetName: t.name, targetType: t.type, targetId: t.id,
+          snapshot: snap()
+        });
+      } catch (err) { console.log(tag, prefix, 'err', err); }
+    };
+
+    const onKeyDownC = (e) => logEvent('keydown(capture)', e);
+    const onKeyPressC = (e) => logEvent('keypress(capture)', e);
+    const onKeyUpC = (e) => logEvent('keyup(capture)', e);
+    const onKeyDownB = (e) => logEvent('keydown(bubble)', e);
+    const onFocusIn = (e) => logEvent('focusin', e);
+    const onFocusOut = (e) => logEvent('focusout', e);
+    const onPointerDown = (e) => logEvent('pointerdown', e);
+    const onMouseDown = (e) => logEvent('mousedown', e);
+
+    document.addEventListener('keydown', onKeyDownC, true);
+    document.addEventListener('keypress', onKeyPressC, true);
+    document.addEventListener('keyup', onKeyUpC, true);
+    document.addEventListener('keydown', onKeyDownB, false);
+    document.addEventListener('focusin', onFocusIn, true);
+    document.addEventListener('focusout', onFocusOut, true);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('mousedown', onMouseDown, true);
+
+    // Also log input/change events for color inputs as they appear
+    const onInput = (e) => logEvent('input', e);
+    const onChange = (e) => logEvent('change', e);
+    document.addEventListener('input', onInput, true);
+    document.addEventListener('change', onChange, true);
+
+    console.log(tag, 'DEBUG FOCUS instrumentation active — interact with a color input now');
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDownC, true);
+      document.removeEventListener('keypress', onKeyPressC, true);
+      document.removeEventListener('keyup', onKeyUpC, true);
+      document.removeEventListener('keydown', onKeyDownB, false);
+      document.removeEventListener('focusin', onFocusIn, true);
+      document.removeEventListener('focusout', onFocusOut, true);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener('input', onInput, true);
+      document.removeEventListener('change', onChange, true);
+      console.log(tag, 'DEBUG FOCUS instrumentation removed');
+    };
+  }, [DEBUG_FOCUS]);
 
   // Helper: is a DOM node inside the preview container?
   const isNodeInPreview = (node) => {
@@ -229,6 +306,16 @@ const ConsentConfigurator = () => {
       !isNodeInPreview(node));
   };
 
+  // Robust detection for color inputs used across handlers
+  const isColorInputElement = (node) => {
+    try {
+      if (!node) return false;
+      if (node.tagName === 'INPUT' && (node.type === 'color' || node.getAttribute && node.getAttribute('type') === 'color')) return true;
+      if (node.querySelector && node.querySelector('input[type="color"]')) return true;
+    } catch (_) {}
+    return false;
+  };
+
   // Common glassmorphism styling for form fields
   const glassFieldStyle = {
     '& .MuiOutlinedInput-root': {
@@ -254,6 +341,13 @@ const ConsentConfigurator = () => {
 
     // Debounced preview update on any config/tab/blur changes
     updateTimeoutRef.current = setTimeout(() => {
+      // If the user is currently editing a field, avoid recreating the preview
+      // DOM. Live-patching happens in `handleChange` while editing. Recreating
+      // the preview causes transient focus loss which closes native pickers.
+      if (isEditingRef.current) {
+        if (DEBUG_FOCUS) console.log('Skipping preview recreate while editing');
+        return;
+      }
       try {
         console.log("🔄 Updating preview");
 
@@ -325,6 +419,56 @@ const ConsentConfigurator = () => {
     };
 
     const onFocusIn = (e) => {
+      if (DEBUG_FOCUS) console.log('[focusin] target=', e.target, 'activeEditing=', isEditingRef.current, 'isInPreview=', isInPreview(e.target));
+      // If a visible color input gained focus, ensure the hidden native input is
+      // synced so reopening the native picker displays the current color.
+      try {
+        const tgt = e.target;
+        if (tgt && tgt.tagName === 'INPUT' && tgt.type === 'color') {
+          const native = nativeColorInputRef.current;
+          if (native) {
+            // Determine the logical field name and a reliable source element to read
+            // the user's last-entered value. If focus landed on the hidden/native
+            // input (`tgt === native`), prefer the visible input referenced by
+            // `activeColorFieldRef.current` or query it by name. Otherwise use the
+            // actual event target.
+            let name = null;
+            let sourceEl = tgt;
+            if (tgt === native) {
+              name = activeColorFieldRef.current || null;
+              if (name) {
+                try {
+                  const q = document.querySelector(`input[type=\"color\"][name=\"${name}\"]`);
+                  if (q) sourceEl = q;
+                } catch (e) {}
+              }
+            } else {
+              name = tgt.getAttribute && tgt.getAttribute('name');
+            }
+
+            // Prefer the current DOM value the user just edited (sourceEl.value).
+            let hex = '#000000';
+            try {
+              const fromTarget = anyCssToHex(sourceEl && sourceEl.value);
+              const fromConfig = anyCssToHex(config && config[name]);
+              hex = fromTarget || fromConfig || native.value || '#000000';
+            } catch (err) {
+              hex = (sourceEl && sourceEl.value) || (config && config[name]) || native.value || '#000000';
+            }
+            // Normalize to 6-digit hex.
+            try {
+              if (!/^#([0-9a-fA-F]{6})$/.test(hex)) {
+                hex = anyCssToHex(hex) || '#000000';
+              }
+            } catch (e) {
+              hex = '#000000';
+            }
+            try { native.value = hex; } catch (_) {}
+            activeColorFieldRef.current = name || activeColorFieldRef.current;
+            if (DEBUG_FOCUS) console.log('[focusin] synced native color input for', name, 'value', hex, 'source=', sourceEl);
+          }
+        }
+      } catch (_) {}
       if (isEditingRef.current && isInPreview(e.target)) {
         // Attempt to blur the target and immediately restore focus to the active input
         if (e.target && typeof e.target.blur === 'function') {
@@ -336,6 +480,118 @@ const ConsentConfigurator = () => {
     };
 
     const onMouseOrTouch = (e) => {
+      if (DEBUG_FOCUS) console.log('[mouse/touch] target=', e.target, 'isInPreview=', isInPreview(e.target));
+      // If the user started interacting with a color input, set a short suppression
+      // period so the blur handler won't immediately steal focus back while the
+      // native color picker opens.
+      // Find the actual visible input[type=color] element if present (target or descendant).
+      // Ignore the hidden native input we append to <body> and only accept inputs
+      // that are visible (have client rects) to avoid triggering when clicking
+      // arbitrary parts of the page (body/queryRoot will include our hidden input).
+      let targetColorInput = null;
+      try {
+        const nativeRef = nativeColorInputRef && nativeColorInputRef.current;
+        const isVisible = (el) => {
+          try {
+            if (!el || !(el instanceof Element)) return false;
+            if (el === nativeRef) return false;
+            const rects = el.getClientRects();
+            if (rects && rects.length) return true;
+            const style = getComputedStyle(el);
+            if (!style) return false;
+            if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0') return false;
+            const r = el.getBoundingClientRect();
+            return !!(r && (r.width > 0 || r.height > 0));
+          } catch (_) { return false; }
+        };
+
+        // Prefer using the event's composed path to find if a color input was
+        // actually inside the clicked subtree. This prevents global queries
+        // (like document.querySelector) from matching inputs that are unrelated
+        // to the click target.
+        const path = (typeof e.composedPath === 'function' && e.composedPath()) || (e.path || null);
+        if (path && Array.isArray(path)) {
+          for (let i = 0; i < path.length; i++) {
+            const node = path[i];
+            if (!node || !(node instanceof Element)) continue;
+            if (node.tagName === 'INPUT' && node.type === 'color' && isVisible(node)) {
+              targetColorInput = node; break;
+            }
+            // If an ancestor contains a color input as a direct descendant that is
+            // also within the path, it's safe to open for that input.
+            try {
+              const cand = node.querySelector && node.querySelector('input[type="color"]');
+              if (cand && isVisible(cand) && path.includes(cand)) { targetColorInput = cand; break; }
+            } catch (_) {}
+          }
+        } else {
+          // Fallback: conservative local checks only
+          if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'color' && isVisible(e.target)) {
+            targetColorInput = e.target;
+          } else if (e.target && e.target.querySelector) {
+            const cand = e.target.querySelector('input[type="color"]');
+            if (cand && isVisible(cand)) targetColorInput = cand;
+          } else if (e.target && e.target.closest) {
+            const cand = e.target.closest && e.target.closest('input[type="color"]');
+            if (cand && isVisible(cand)) targetColorInput = cand;
+          }
+        }
+      } catch (_) { targetColorInput = null; }
+
+      if (targetColorInput) {
+        suppressRefocusUntilRef.current = Date.now() + 1000; // 1s suppression
+        if (DEBUG_FOCUS) console.log('[mouse/touch] detected color input interaction, suppress refocus until', suppressRefocusUntilRef.current, 'input=', targetColorInput);
+
+        // Open the hidden native color input synchronously while handling the pointer/mousedown
+        try {
+          const native = nativeColorInputRef.current;
+          if (native) {
+            // remember which logical field we're editing
+            const name = targetColorInput.getAttribute && targetColorInput.getAttribute('name');
+            activeColorFieldRef.current = name || activeColorFieldRef.current;
+            const hex = anyCssToHex(config[name]) || targetColorInput.value || native.value || '#000000';
+            try { native.value = hex; } catch (_) {}
+
+            // To satisfy browser visibility/user-gesture heuristics move the native
+            // input under the pointer, make it tiny but visible, trigger the picker
+            // synchronously, then restore it offscreen.
+            const restore = () => {
+              try {
+                native.style.left = '-9999px';
+                native.style.top = '-9999px';
+                native.style.width = '1px';
+                native.style.height = '1px';
+                native.style.opacity = '0';
+                native.style.pointerEvents = 'none';
+              } catch (_) {}
+            };
+
+            try {
+              const x = (e.clientX || 0) - 10;
+              const y = (e.clientY || 0) - 10;
+              native.style.position = 'fixed';
+              native.style.left = `${x}px`;
+              native.style.top = `${y}px`;
+              native.style.width = '20px';
+              native.style.height = '20px';
+              native.style.opacity = '0';
+              native.style.pointerEvents = 'auto';
+              // focus then open picker
+              try { native.focus(); } catch (_) {}
+              if (typeof native.showPicker === 'function') native.showPicker(); else native.click();
+            } catch (err) {
+              if (DEBUG_FOCUS) console.log('[mouse/touch] failed to position/open native picker', err);
+            } finally {
+              // Restore after short delay to let picker open
+              setTimeout(restore, 600);
+            }
+
+            if (DEBUG_FOCUS) console.log('[mouse/touch] attempted native picker for', name, 'value', hex);
+          }
+        } catch (err) {
+          if (DEBUG_FOCUS) console.log('[mouse/touch] failed to open native picker', err);
+        }
+      }
       if (isEditingRef.current && isInPreview(e.target)) {
         e.preventDefault();
         e.stopPropagation();
@@ -343,15 +599,92 @@ const ConsentConfigurator = () => {
       }
     };
 
+    // Capture-phase keydown handler: when a color input is focused, stop other
+    // global handlers from observing printable key presses (numbers/letters)
+    // which can cause the native color picker to close. We only stop propagation
+    // for printable single-character keys and let arrows/ctrl/meta pass through.
+    const onKeyDownCapture = (e) => {
+      try {
+        const ae = document.activeElement;
+        if (!ae) return;
+        if (!isColorInputElement(ae)) return;
+        // Allow navigation keys and modifiers
+        const navKeys = new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Escape','Enter','Shift','Control','Alt','Meta','Backspace','Delete']);
+        if (navKeys.has(e.key)) return;
+        // Printable single-character keys usually have length 1
+        if (typeof e.key === 'string' && e.key.length === 1) {
+          // Stop other listeners (capture-phase) so they don't close the picker.
+          e.stopImmediatePropagation();
+          // Do not call preventDefault — allow the key to be applied to the input.
+        }
+      } catch (_) {}
+    };
+
     document.addEventListener('focusin', onFocusIn, true);
     document.addEventListener('mousedown', onMouseOrTouch, true);
     document.addEventListener('touchstart', onMouseOrTouch, true);
+    document.addEventListener('keydown', onKeyDownCapture, true);
 
     return () => {
       document.removeEventListener('focusin', onFocusIn, true);
       document.removeEventListener('mousedown', onMouseOrTouch, true);
       document.removeEventListener('touchstart', onMouseOrTouch, true);
+      document.removeEventListener('keydown', onKeyDownCapture, true);
     };
+  }, []);
+
+  // Create a single hidden native color input to open the browser's color picker
+  // without depending on the MUI input node (prevents re-mounts closing the picker).
+  useEffect(() => {
+    try {
+      const inp = document.createElement('input');
+      inp.type = 'color';
+      inp.style.position = 'fixed';
+      inp.style.left = '-9999px';
+      inp.style.width = '1px';
+      inp.style.height = '1px';
+      inp.tabIndex = -1;
+      const onNativeInput = (e) => {
+        try {
+          const name = activeColorFieldRef.current;
+          const val = inp.value; // already #rrggbb
+          if (name) {
+            setConfig(prev => ({ ...prev, [name]: val }));
+            // Live patch preview while editing
+            const container = document.getElementById('consent-container');
+            if (container) {
+              // apply same live updates used elsewhere
+              if (name === 'backgroundColor' || name === 'outlineColor') {
+                const popup = queryFirst(container, fieldSelectors[name]) || container.firstElementChild;
+                if (popup) {
+                  if (name === 'backgroundColor') popup.style.backgroundColor = val;
+                  else if (name === 'outlineColor') popup.style.outline = `3px solid ${val}`;
+                }
+              } else if (name === 'accentColor') {
+                const titleEl = queryFirst(container, fieldSelectors.accentColor);
+                if (titleEl) titleEl.style.color = val;
+              } else if (['acceptTextColor','declineTextColor','borderColor'].includes(name)) {
+                const el = queryFirst(container, fieldSelectors[name]);
+                if (el) {
+                  if (name === 'borderColor') el.style.borderColor = val;
+                  else el.style.color = val;
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      };
+      inp.addEventListener('input', onNativeInput);
+      inp.addEventListener('change', onNativeInput);
+      document.body.appendChild(inp);
+      nativeColorInputRef.current = inp;
+      return () => {
+        try { inp.removeEventListener('input', onNativeInput); inp.removeEventListener('change', onNativeInput); } catch(_){}
+        try { document.body.removeChild(inp); } catch(_){}
+        nativeColorInputRef.current = null;
+        activeColorFieldRef.current = null;
+      };
+    } catch (_) {}
   }, []);
 
   // Focus-based preview highlighting (hover highlighting removed)
@@ -508,6 +841,11 @@ const ConsentConfigurator = () => {
   const handleChange = (e) => {
     // Save reference to the active element
     const target = e.target;
+    if (DEBUG_FOCUS) {
+      try {
+        console.log('[CONSENT-DBG] handleChange', { name: target.name, value: target.value, type: target.type, selectionStart: target.selectionStart, selectionEnd: target.selectionEnd, eventType: e.type });
+      } catch (_) {}
+    }
     activeElementRef.current = target;
 
     // Preserve caret/selection if possible
@@ -649,9 +987,37 @@ const ConsentConfigurator = () => {
         return;
       }
       // Ignore spurious blur that happens immediately after focus (e.g., first click)
+      // Increase threshold to accomodate different browser/platform color picker timings.
       const sinceFocus = Date.now() - justFocusedAtRef.current;
-      if (sinceFocus < 160) {
-        // Keep editing state and restore focus if needed
+      if (sinceFocus < 300) {
+        // If we recently detected a pointer interaction with a color input, allow
+        // the native picker to open by skipping refocus during suppression window.
+        if (suppressRefocusUntilRef.current && Date.now() < suppressRefocusUntilRef.current) {
+          if (DEBUG_FOCUS) console.log('[blur] skipping refocus due to suppression window', { now: Date.now(), until: suppressRefocusUntilRef.current });
+          isEditingRef.current = true;
+          return;
+        }
+        if (DEBUG_FOCUS) console.log('[blur] transient blur detected', { fieldName, sinceFocus, blurredTarget, activeNow: document.activeElement });
+        // Robust detection for color inputs: the blur target might be a wrapper element
+        // (e.g., MUI TextField). Check the target and any input descendants for type=color.
+        const isColorInputElement = (node) => {
+          try {
+            if (!node) return false;
+            if (node.tagName === 'INPUT' && (node.type === 'color' || node.getAttribute('type') === 'color')) return true;
+            // check descendants
+            const found = node.querySelector && node.querySelector('input[type="color"]');
+            if (found) return true;
+          } catch (_) {}
+          return false;
+        };
+        const isColorInput = isColorInputElement(blurredTarget) || isColorInputElement(document.activeElement);
+        if (isColorInput) {
+          // Let native color picker open/own focus; keep editing mode active.
+          if (DEBUG_FOCUS) console.log('[blur] detected color input - allowing native picker', { blurredTarget, activeNow: document.activeElement });
+          isEditingRef.current = true;
+          return;
+        }
+        // For other very-short blurs, restore focus to avoid accidental losing of caret
         try { blurredTarget.focus(); } catch (_) {}
         return;
       }
@@ -690,6 +1056,55 @@ const ConsentConfigurator = () => {
       onFocus={handleFieldFocus}
       onBlur={handleFieldBlur}
       onChange={handleChange}
+      onFocusCapture={(e) => {
+        try {
+          // Sync the hidden native color input value when a color field is focused,
+          // but do NOT open the picker here. Opening is performed synchronously
+          // on pointer events to satisfy browser user-gesture heuristics and to
+          // avoid reopening the picker when focus is restored programmatically.
+          if (props && props.type === 'color') {
+            const native = nativeColorInputRef.current;
+            if (native) {
+              activeColorFieldRef.current = props.name;
+              const hex = anyCssToHex(config[props.name]) || native.value || '#000000';
+              try { native.value = hex; } catch (_) {}
+            }
+          }
+        } catch (_) {}
+      }}
+      onKeyDown={(e) => {
+        if (DEBUG_FOCUS) {
+          try { console.log('[CONSENT-DBG] EnhancedTextField onKeyDown', { key: e.key, type: props && props.type, name: props && props.name }); } catch (_) {}
+        }
+        // If this is a color input, prevent global handlers from seeing printable keys
+        try {
+          if (props && props.type === 'color') {
+            // Stop React propagation
+            e.stopPropagation();
+            // Stop native event propagation so non-React listeners don't run
+            if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
+              e.nativeEvent.stopImmediatePropagation();
+            }
+          }
+        } catch (_) {}
+        // Call any user-provided handler
+        if (props && typeof props.onKeyDown === 'function') props.onKeyDown(e);
+      }}
+      onKeyPress={(e) => {
+        if (DEBUG_FOCUS) {
+          try { console.log('[CONSENT-DBG] EnhancedTextField onKeyPress', { key: e.key, type: props && props.type, name: props && props.name }); } catch (_) {}
+        }
+        try {
+          if (props && props.type === 'color') {
+            e.stopPropagation();
+            if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
+              e.nativeEvent.stopImmediatePropagation();
+            }
+          }
+        } catch (_) {}
+        if (props && typeof props.onKeyPress === 'function') props.onKeyPress(e);
+      }}
+      onInput={(e) => { if (DEBUG_FOCUS) { try { console.log('[CONSENT-DBG] EnhancedTextField onInput', { data: e.data, inputType: e.inputType, name: props && props.name, value: e.target && e.target.value }); } catch(_) {} } if (props && typeof props.onInput === 'function') props.onInput(e); }}
     />
   );
 
@@ -704,7 +1119,14 @@ const ConsentConfigurator = () => {
   );
 
   const handleReset = () => {
-    setConfig(getDefaultConfig());
+  // Clear editing flags so the reset immediately reflects in the UI and
+  // preview updates are not suppressed by editing guards.
+  isEditingRef.current = false;
+  activeElementRef.current = null;
+  activeColorFieldRef.current = null;
+  lastFocusedFieldRef.current = null;
+  setLastBlurAt(Date.now());
+  setConfig(getDefaultConfig());
     // Don't update hash until share
   };
 
@@ -939,7 +1361,7 @@ const ConsentConfigurator = () => {
                 type="color"
                 label="Background Color"
                 name="backgroundColor"
-                value={config.backgroundColor}
+                value={anyCssToHex(config.backgroundColor) || ''}
                 margin="normal"
                 sx={glassFieldStyle}
               />
@@ -948,7 +1370,7 @@ const ConsentConfigurator = () => {
                 type="color"
                 label="Accent Color"
                 name="accentColor"
-                value={config.accentColor}
+                value={anyCssToHex(config.accentColor) || ''}
                 margin="normal"
                 sx={glassFieldStyle}
               />
@@ -957,7 +1379,7 @@ const ConsentConfigurator = () => {
                 type="color"
                 label="Accept Button Text Color"
                 name="acceptTextColor"
-                value={config.acceptTextColor}
+                value={anyCssToHex(config.acceptTextColor) || ''}
                 margin="normal"
                 sx={glassFieldStyle}
               />
@@ -966,7 +1388,7 @@ const ConsentConfigurator = () => {
                 type="color"
                 label="Decline Button Text Color"
                 name="declineTextColor"
-                value={config.declineTextColor}
+                value={anyCssToHex(config.declineTextColor) || ''}
                 margin="normal"
                 sx={glassFieldStyle}
               />
@@ -975,7 +1397,7 @@ const ConsentConfigurator = () => {
                 type="color"
                 label="Border Color"
                 name="borderColor"
-                value={config.borderColor}
+                value={anyCssToHex(config.borderColor) || ''}
                 margin="normal"
                 sx={glassFieldStyle}
               />
@@ -984,7 +1406,7 @@ const ConsentConfigurator = () => {
                 type="color"
                 label="Outline Color"
                 name="outlineColor"
-                value={config.outlineColor}
+                value={anyCssToHex(config.outlineColor) || ''}
                 margin="normal"
                 sx={glassFieldStyle}
               />
