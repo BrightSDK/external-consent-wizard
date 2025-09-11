@@ -17,7 +17,7 @@
     "webpack": "^5.98.0"
   },
   "name": "external-consent-wizard",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "index.js",
   "scripts": {
     "start": "webpack serve --mode development --open",

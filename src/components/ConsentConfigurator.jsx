@@ -861,6 +861,16 @@ const ConsentConfigurator = () => {
       [name]: value
     }));
 
+    // If the language changed, we want the preview to update immediately even
+    // if the editor thinks we're in an "editing" state (e.g., color picker open).
+    // Clear editing guards and bump lastBlurAt to force the preview effect to run.
+    try {
+      if (name === 'language') {
+        isEditingRef.current = false;
+        setLastBlurAt(Date.now());
+      }
+    } catch (_) {}
+
     // Live patch the preview for specific fields while editing, without recreating the preview
     if (isEditingRef.current) {
       const container = document.getElementById('consent-container');
