@@ -2,6 +2,14 @@ import "@fontsource/roboto";
 import { Button, Card, CardContent, Divider, FormControl, Grid, InputLabel, MenuItem, Select, Snackbar, Tab, Tabs, TextField, Typography } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ImplementationSteps from "./ImplementationSteps";
+import {
+  getDefaultConfig,
+  safeBase64Decode,
+  safeBase64Encode,
+  sanitizeConfig,
+  isSafeUrl,
+  isSafeCssColor
+} from "../utils/security";
 
 // Force React to be used - prevents auto-removal
 const _forceReactUsage = React.createElement;
@@ -140,29 +148,13 @@ const ConsentConfigurator = () => {
     return result;
   };
 
-  const getDefaultConfig = () => ({
-    logo: "img/logo.png",
-    qrCode: "",
-    title: "Bright SDK Consent",
-    benefitText: "To support the app",
-    acceptButton: "",
-    declineButton: "",
-    acceptButtonText: "Accept",
-    declineButtonText: "Decline",
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
-    accentColor: "#667eea",
-    acceptTextColor: "#FFFFFF",
-    declineTextColor: "rgba(0, 0, 0, 0.9)",
-    borderColor: "rgba(64, 28, 28, 0.3)",
-    outlineColor: "rgba(0, 0, 0, 0.5)",
-    language: "en"
-  });
-
   const getConfigFromURL = () => {
     const hash = window.location.hash.substring(1);
     if (hash) {
       try {
-        return JSON.parse(atob(hash));
+        const decoded = safeBase64Decode(hash);
+        const parsed = JSON.parse(decoded);
+        return sanitizeConfig(parsed);
       } catch (e) {
         console.error("Invalid hash data");
       }
@@ -354,7 +346,8 @@ const ConsentConfigurator = () => {
         const container = document.getElementById("consent-container");
         if (container && window.ConsentModule) {
           container.innerHTML = "";
-          const params = { ...config, preview: true };
+          const safeParams = sanitizeConfig({ ...config, preview: true });
+          const params = { ...safeParams, preview: true };
 
           // Make the entire preview subtree inert and hidden from a11y to avoid focus stealing
           try {
@@ -886,19 +879,25 @@ const ConsentConfigurator = () => {
         if (name === 'logo' || name === 'qrCode') {
           let el = queryFirst(container, fieldSelectors[name]);
           if (el && el.tagName === 'IMG') {
-            try { if (el.src !== value) el.src = value; } catch (_) {}
+            try {
+              if (isSafeUrl(value)) {
+                if (el.src !== value) el.src = value;
+              }
+            } catch (_) {}
           }
         }
         if (name === 'acceptButton' || name === 'declineButton') {
           let btn = queryFirst(container, fieldSelectors[name]);
           if (btn) {
-            try { btn.style.backgroundImage = value ? `url(${value})` : ''; } catch (_) {}
+            try {
+              btn.style.backgroundImage = (value && isSafeUrl(value)) ? `url(${value})` : '';
+            } catch (_) {}
           }
         }
         // Color fields
         if (name === 'backgroundColor' || name === 'outlineColor') {
           let popup = queryFirst(container, fieldSelectors[name]) || container.firstElementChild;
-          if (popup) {
+          if (popup && isSafeCssColor(value)) {
             if (name === 'backgroundColor') {
               try { popup.style.backgroundColor = value; } catch (_) {}
             } else if (name === 'outlineColor') {
@@ -907,30 +906,36 @@ const ConsentConfigurator = () => {
           }
         }
         if (name === 'accentColor') {
-          let titleEl = queryFirst(container, fieldSelectors.accentColor);
-          if (titleEl) {
-            try { titleEl.style.color = value; } catch (_) {}
-          }
-          // Also affect accept button text as per mapping note
-          let accBtn = queryFirst(container, fieldSelectors.acceptTextColor);
-          if (accBtn) {
-            try { accBtn.style.color = value; } catch (_) {}
+          if (isSafeCssColor(value)) {
+            let titleEl = queryFirst(container, fieldSelectors.accentColor);
+            if (titleEl) {
+              try { titleEl.style.color = value; } catch (_) {}
+            }
+            // Also affect accept button text as per mapping note
+            let accBtn = queryFirst(container, fieldSelectors.acceptTextColor);
+            if (accBtn) {
+              try { accBtn.style.color = value; } catch (_) {}
+            }
           }
         }
         if (name === 'acceptTextColor' || name === 'declineTextColor') {
-          let btn = queryFirst(container, fieldSelectors[name]);
-          if (btn) {
-            try { btn.style.color = value; } catch (_) {}
+          if (isSafeCssColor(value)) {
+            let btn = queryFirst(container, fieldSelectors[name]);
+            if (btn) {
+              try { btn.style.color = value; } catch (_) {}
+            }
           }
         }
         if (name === 'borderColor') {
-          let declineBtn = queryFirst(container, fieldSelectors.borderColor);
-          if (declineBtn) {
-            try {
-              declineBtn.style.borderColor = value;
-              if (!declineBtn.style.borderWidth) declineBtn.style.borderWidth = '2px';
-              if (!declineBtn.style.borderStyle) declineBtn.style.borderStyle = 'solid';
-            } catch (_) {}
+          if (isSafeCssColor(value)) {
+            let declineBtn = queryFirst(container, fieldSelectors.borderColor);
+            if (declineBtn) {
+              try {
+                declineBtn.style.borderColor = value;
+                if (!declineBtn.style.borderWidth) declineBtn.style.borderWidth = '2px';
+                if (!declineBtn.style.borderStyle) declineBtn.style.borderStyle = 'solid';
+              } catch (_) {}
+            }
           }
         }
       }
@@ -1142,7 +1147,7 @@ const ConsentConfigurator = () => {
 
   const handleShare = () => {
     // Only update the URL hash when sharing
-    window.location.hash = btoa(JSON.stringify(config));
+    window.location.hash = safeBase64Encode(JSON.stringify(config));
 
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
