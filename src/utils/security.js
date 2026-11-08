@@ -94,7 +94,53 @@ export const sanitizeHtml = (dirty, options = {}) => {
 };
 
 export const sanitizeText = (dirty) => {
-  return sanitizeHtml(dirty, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  if (typeof dirty !== "string") return "";
+  const purifier = getPurifier();
+  if (purifier && typeof purifier.sanitize === "function") {
+    const cleanHtml = purifier.sanitize(dirty, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    if (typeof document !== "undefined" && typeof document.createElement === "function") {
+      const temp = document.createElement("div");
+      temp.innerHTML = cleanHtml;
+      return temp.textContent || "";
+    }
+    return cleanHtml
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+  return dirty;
+};
+
+const ALLOWED_CSS_PROPERTIES = new Set([
+  "color",
+  "font-weight",
+  "font-style",
+  "font-size",
+  "text-decoration",
+  "text-transform",
+  "letter-spacing",
+  "font-family"
+]);
+
+export const sanitizeInlineStyle = (styleStr) => {
+  if (typeof styleStr !== "string") return "";
+  const declarations = styleStr.split(";");
+  const safeDeclarations = [];
+  for (const decl of declarations) {
+    const trimmed = decl.trim();
+    if (!trimmed) continue;
+    const colonIdx = trimmed.indexOf(":");
+    if (colonIdx === -1) continue;
+    const prop = trimmed.slice(0, colonIdx).trim().toLowerCase();
+    const val = trimmed.slice(colonIdx + 1).trim();
+    if (!ALLOWED_CSS_PROPERTIES.has(prop)) continue;
+    // Reject dangerous constructs (url(), expression(), quotes, brackets, control characters)
+    if (/[\x00-\x1f\x7f<>"'`\\;\r\n]|url\(|expression\(/i.test(val)) continue;
+    safeDeclarations.push(`${prop}: ${val}`);
+  }
+  return safeDeclarations.join("; ");
 };
 
 const TITLE_PURIFY_OPTIONS = {
@@ -104,11 +150,27 @@ const TITLE_PURIFY_OPTIONS = {
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "href", "src", "action", "formaction", "data"]
 };
 
-const BENEFIT_PURIFY_OPTIONS = {
-  ALLOWED_TAGS: ["span", "b", "strong", "i", "em", "u", "br", "p"],
-  ALLOWED_ATTR: ["style", "class", "color"],
-  FORBID_TAGS: ["script", "iframe", "object", "embed", "link", "style", "form", "input", "button", "svg", "math", "img", "video", "audio", "source", "a"],
-  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "href", "src", "action", "formaction", "data"]
+export const sanitizeTitle = (title) => {
+  if (typeof title !== "string") return "";
+  const cleanHtml = sanitizeHtml(title, TITLE_PURIFY_OPTIONS);
+  if (typeof document !== "undefined" && typeof document.createElement === "function") {
+    const temp = document.createElement("div");
+    temp.innerHTML = cleanHtml;
+    const styledElements = temp.querySelectorAll("[style]");
+    styledElements.forEach((el) => {
+      const safeStyle = sanitizeInlineStyle(el.getAttribute("style"));
+      if (safeStyle) {
+        el.setAttribute("style", safeStyle);
+      } else {
+        el.removeAttribute("style");
+      }
+    });
+    return temp.innerHTML;
+  }
+  return cleanHtml.replace(/style="([^"]*)"/gi, (_, styleVal) => {
+    const safe = sanitizeInlineStyle(styleVal);
+    return safe ? `style="${safe}"` : "";
+  });
 };
 
 export const sanitizeConfig = (raw) => {
@@ -120,8 +182,8 @@ export const sanitizeConfig = (raw) => {
   return {
     logo: typeof raw.logo === "string" ? (isSafeUrl(raw.logo) ? raw.logo.trim() : (raw.logo.trim() === "" ? "" : defaults.logo)) : defaults.logo,
     qrCode: typeof raw.qrCode === "string" ? (isSafeUrl(raw.qrCode) ? raw.qrCode.trim() : (raw.qrCode.trim() === "" ? "" : defaults.qrCode)) : defaults.qrCode,
-    title: typeof raw.title === "string" ? sanitizeHtml(raw.title, TITLE_PURIFY_OPTIONS) : defaults.title,
-    benefitText: typeof raw.benefitText === "string" ? sanitizeHtml(raw.benefitText, BENEFIT_PURIFY_OPTIONS) : defaults.benefitText,
+    title: typeof raw.title === "string" ? sanitizeTitle(raw.title) : defaults.title,
+    benefitText: typeof raw.benefitText === "string" ? sanitizeText(raw.benefitText) : defaults.benefitText,
     acceptButton: typeof raw.acceptButton === "string" ? (isSafeUrl(raw.acceptButton) ? raw.acceptButton.trim() : (raw.acceptButton.trim() === "" ? "" : defaults.acceptButton)) : defaults.acceptButton,
     declineButton: typeof raw.declineButton === "string" ? (isSafeUrl(raw.declineButton) ? raw.declineButton.trim() : (raw.declineButton.trim() === "" ? "" : defaults.declineButton)) : defaults.declineButton,
     acceptButtonText: typeof raw.acceptButtonText === "string" ? sanitizeText(raw.acceptButtonText) : defaults.acceptButtonText,
@@ -170,7 +232,7 @@ export const safeBase64Decode = (str) => {
       for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
       }
-      return new TextDecoder().decode(bytes);
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     } catch (_) {}
   }
   try {
