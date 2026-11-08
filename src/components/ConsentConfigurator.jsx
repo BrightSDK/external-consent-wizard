@@ -877,8 +877,9 @@ const ConsentConfigurator = () => {
         }
         // Asset fields
         if (name === 'logo' || name === 'qrCode') {
-          let el = queryFirst(container, fieldSelectors[name]);
+          let el = container.querySelector(`[data-field="${name}"]`) || queryFirst(container, fieldSelectors[name]);
           if (el && el.tagName === 'IMG') {
+            el.dataset.field = name;
             try {
               if (isSafeUrl(value)) {
                 if (el.src !== value) el.src = value;
