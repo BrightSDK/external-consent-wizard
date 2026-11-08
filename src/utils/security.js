@@ -35,7 +35,7 @@ export const sanitizeLanguage = (lang) => {
 export const isSafeUrl = (url) => {
   if (typeof url !== "string") return false;
   const trimmed = url.trim();
-  if (!trimmed) return true;
+  if (!trimmed) return false;
   // Reject control characters, quotes, and parens that can break CSS url(...) or attribute contexts
   if (/[\x00-\x1f\x7f<>"'()\\]/.test(trimmed)) return false;
   if (/^(javascript|vbscript):/i.test(trimmed)) return false;
@@ -118,12 +118,12 @@ export const sanitizeConfig = (raw) => {
   }
 
   return {
-    logo: typeof raw.logo === "string" && isSafeUrl(raw.logo) ? raw.logo.trim() : defaults.logo,
-    qrCode: typeof raw.qrCode === "string" && isSafeUrl(raw.qrCode) ? raw.qrCode.trim() : defaults.qrCode,
+    logo: typeof raw.logo === "string" ? (isSafeUrl(raw.logo) ? raw.logo.trim() : (raw.logo.trim() === "" ? "" : defaults.logo)) : defaults.logo,
+    qrCode: typeof raw.qrCode === "string" ? (isSafeUrl(raw.qrCode) ? raw.qrCode.trim() : (raw.qrCode.trim() === "" ? "" : defaults.qrCode)) : defaults.qrCode,
     title: typeof raw.title === "string" ? sanitizeHtml(raw.title, TITLE_PURIFY_OPTIONS) : defaults.title,
     benefitText: typeof raw.benefitText === "string" ? sanitizeHtml(raw.benefitText, BENEFIT_PURIFY_OPTIONS) : defaults.benefitText,
-    acceptButton: typeof raw.acceptButton === "string" && isSafeUrl(raw.acceptButton) ? raw.acceptButton.trim() : defaults.acceptButton,
-    declineButton: typeof raw.declineButton === "string" && isSafeUrl(raw.declineButton) ? raw.declineButton.trim() : defaults.declineButton,
+    acceptButton: typeof raw.acceptButton === "string" ? (isSafeUrl(raw.acceptButton) ? raw.acceptButton.trim() : (raw.acceptButton.trim() === "" ? "" : defaults.acceptButton)) : defaults.acceptButton,
+    declineButton: typeof raw.declineButton === "string" ? (isSafeUrl(raw.declineButton) ? raw.declineButton.trim() : (raw.declineButton.trim() === "" ? "" : defaults.declineButton)) : defaults.declineButton,
     acceptButtonText: typeof raw.acceptButtonText === "string" ? sanitizeText(raw.acceptButtonText) : defaults.acceptButtonText,
     declineButtonText: typeof raw.declineButtonText === "string" ? sanitizeText(raw.declineButtonText) : defaults.declineButtonText,
     backgroundColor: typeof raw.backgroundColor === "string" && isSafeCssColor(raw.backgroundColor) ? raw.backgroundColor.trim() : defaults.backgroundColor,
@@ -148,11 +148,22 @@ export const safeBase64Encode = (str) => {
       return btoa(binary);
     } catch (_) {}
   }
-  return btoa(str);
+  try {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+      String.fromCharCode(parseInt(p1, 16))
+    ));
+  } catch (_) {
+    return "";
+  }
 };
 
 export const safeBase64Decode = (str) => {
-  const binary = atob(str);
+  let binary = "";
+  try {
+    binary = atob(str);
+  } catch (_) {
+    return "";
+  }
   if (typeof TextDecoder !== "undefined") {
     try {
       const bytes = new Uint8Array(binary.length);
@@ -162,5 +173,13 @@ export const safeBase64Decode = (str) => {
       return new TextDecoder().decode(bytes);
     } catch (_) {}
   }
-  return binary;
+  try {
+    return decodeURIComponent(
+      Array.prototype.map.call(binary, (c) =>
+        "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join("")
+    );
+  } catch (_) {
+    return binary;
+  }
 };

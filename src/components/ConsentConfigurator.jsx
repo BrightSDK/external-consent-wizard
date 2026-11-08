@@ -156,7 +156,7 @@ const ConsentConfigurator = () => {
         const parsed = JSON.parse(decoded);
         return sanitizeConfig(parsed);
       } catch (e) {
-        console.error("Invalid hash data");
+        console.error("Invalid hash data:", e);
       }
     }
     return getDefaultConfig();
@@ -882,6 +882,10 @@ const ConsentConfigurator = () => {
             try {
               if (isSafeUrl(value)) {
                 if (el.src !== value) el.src = value;
+                el.style.display = '';
+              } else if (!value || value.trim() === '') {
+                el.removeAttribute('src');
+                el.style.display = 'none';
               }
             } catch (_) {}
           }
