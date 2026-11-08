@@ -890,7 +890,7 @@ const ConsentConfigurator = () => {
           let btn = queryFirst(container, fieldSelectors[name]);
           if (btn) {
             try {
-              btn.style.backgroundImage = (value && isSafeUrl(value)) ? `url(${value})` : '';
+              btn.style.backgroundImage = (value && isSafeUrl(value)) ? `url(${JSON.stringify(value)})` : '';
             } catch (_) {}
           }
         }

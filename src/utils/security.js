@@ -23,8 +23,11 @@ export const SUPPORTED_LANGUAGES = new Set([
 ]);
 
 export const sanitizeLanguage = (lang) => {
-  if (typeof lang === "string" && SUPPORTED_LANGUAGES.has(lang.toLowerCase().trim())) {
-    return lang.toLowerCase().trim();
+  if (typeof lang === "string") {
+    const normalized = lang.toLowerCase().trim();
+    if (SUPPORTED_LANGUAGES.has(normalized)) {
+      return normalized;
+    }
   }
   return "en";
 };
@@ -33,9 +36,12 @@ export const isSafeUrl = (url) => {
   if (typeof url !== "string") return false;
   const trimmed = url.trim();
   if (!trimmed) return true;
+  // Reject control characters, quotes, and parens that can break CSS url(...) or attribute contexts
+  if (/[\x00-\x1f\x7f<>"'()\\]/.test(trimmed)) return false;
   if (/^(javascript|vbscript):/i.test(trimmed)) return false;
   if (/^data:/i.test(trimmed)) {
-    return /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[a-zA-Z0-9+/=\s]+$/i.test(trimmed);
+    // Only permit safe raster image formats; reject SVG and executable data types
+    return /^data:image\/(png|jpe?g|gif|webp);base64,[a-zA-Z0-9+/=\s]+$/i.test(trimmed);
   }
   try {
     const base = typeof window !== "undefined" && window.location ? window.location.origin : "https://localhost";
@@ -131,17 +137,30 @@ export const sanitizeConfig = (raw) => {
 };
 
 export const safeBase64Encode = (str) => {
-  try {
-    return btoa(unescape(encodeURIComponent(str)));
-  } catch (_) {
-    return btoa(str);
+  if (typeof TextEncoder !== "undefined") {
+    try {
+      const bytes = new TextEncoder().encode(str);
+      let binary = "";
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    } catch (_) {}
   }
+  return btoa(str);
 };
 
 export const safeBase64Decode = (str) => {
-  try {
-    return decodeURIComponent(escape(atob(str)));
-  } catch (_) {
-    return atob(str);
+  const binary = atob(str);
+  if (typeof TextDecoder !== "undefined") {
+    try {
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new TextDecoder().decode(bytes);
+    } catch (_) {}
   }
+  return binary;
 };
